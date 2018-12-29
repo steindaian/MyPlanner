@@ -1,11 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".photo.PhotoActivity"
-    tools:showIn="@layout/app_bar_photo">
+    tools:showIn="@layout/app_bar_photo"
+    android:orientation="vertical">
 
-</android.support.constraint.ConstraintLayout>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="4dp">
+
+        <ImageButton
+            android:id="@+id/profilePicture"
+            android:layout_width="90dp"
+            android:layout_height="80dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginVertical="5dp"
+            android:clickable="true"
+            />
+        <TextView
+            android:id="@+id/profileName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name"
+            android:layout_toRightOf="@id/profilePicture"
+            android:layout_alignTop="@id/profilePicture"
+            tools:ignore="InvalidId"
+            android:layout_marginLeft="5dp"
+            android:padding="4dp"
+            android:textSize="20dp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/profileDescription"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginLeft="5dp"
+            android:padding="4dp"
+            android:overScrollMode="ifContentScrolls"
+            android:text="Description"
+            android:layout_below="@id/profileName"
+            android:layout_toRightOf="@id/profilePicture"/>
+
+        <EditText
+            android:id="@+id/eProfileDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLength="30"
+            android:hint="Description"
+            android:layout_marginLeft="5dp"
+            android:padding="4dp"
+            android:overScrollMode="ifContentScrolls"
+            android:layout_below="@id/profileName"
+            android:layout_toRightOf="@id/profilePicture"
+            android:visibility="invisible"/>
+
+        <ImageButton
+            android:id="@+id/bEditDescription"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:padding="5dp"
+            android:src="@drawable/ic_edit"
+            android:background="@color/colorPrimaryDark"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:visibility="invisible"/>
+        <ImageButton
+            android:id="@+id/bDeleteDescription"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:padding="5dp"
+            android:src="@drawable/ic_delete"
+            android:background="@color/colorPrimaryDark"
+            android:layout_alignParentBottom="true"
+            android:layout_toLeftOf="@id/bEditDescription"
+            android:layout_marginRight="5dp"
+            android:visibility="invisible"/>
+    </RelativeLayout>
+
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="4">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No photos to show"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="50dp"
+            android:textSize="30dp"
+            android:textStyle="bold"
+            android:id="@+id/photoPlaceHolder"
+            />
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/photoListView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true">
+
+
+
+        </android.support.v7.widget.RecyclerView>
+    </RelativeLayout>
+</LinearLayout>
