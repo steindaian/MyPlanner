@@ -17,6 +17,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -65,6 +67,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -87,6 +90,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -98,8 +104,11 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import de.hdodenhof.circleimageview.CircleImageView;
 import upt.myplanner.MainActivity;
 import upt.myplanner.R;
+import upt.myplanner.friends.FriendsActivity;
+import upt.myplanner.friends.Requests;
 import upt.myplanner.login.LoginActivity;
 
 
@@ -114,6 +123,7 @@ public class PhotoActivity extends AppCompatActivity
     protected static final int GALLERY_PICTURE_REQUEST = 1;
     private static final int LOCATION_REQUEST = 3;
     private static final int REQUEST_CHECK_SETTINGS = 4;
+    public static final String PHOTO_POSITION = "PhotoPosition";
     private final Context context = this;
     private final Activity activity = this;
     File photoFile = null;
@@ -138,7 +148,7 @@ public class PhotoActivity extends AppCompatActivity
     private LocationListener mLocListener;
     private LocationRequest mLocationRequest;
 
-    private ImageButton profileImg;
+    private CircleImageView profileImg;
     private TextView profileName;
     private TextView profileDescription;
     private EditText eDescription;
@@ -147,17 +157,22 @@ public class PhotoActivity extends AppCompatActivity
     private RecyclerView photoListView;
     private TextView photoPH;
     private TextView tLocation;
-    private final List<PhotoPost> photoList = new ArrayList<PhotoPost>();
+    private final ArrayList<PhotoPost> photoList = new ArrayList<PhotoPost>();
     private HashMap<String, PhotoPost> photoMap = new HashMap<String, PhotoPost>();
 
     //private FirebaseRecyclerAdapter mAdapter;
     public static final String TAG = "PhotoActivity";
     private String profilePhotoPath;
     private ListenerRegistration profileRegistration = null;
+    private String userName;
+
+    private boolean internetEn = false;
+    private String profilePhotoImgPath = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        internetEn = isInternetAvailableOnce();
         db = FirebaseFirestore.getInstance();
         databaseReference = FirebaseDatabase.getInstance().getReference();
         auth = FirebaseAuth.getInstance();
@@ -177,6 +192,17 @@ public class PhotoActivity extends AppCompatActivity
             startActivity(new Intent(PhotoActivity.this, LoginActivity.class));
             finish();
         }
+        if(auth.getCurrentUser() != null) {
+            userName = auth.getCurrentUser().getDisplayName();
+            if(auth.getCurrentUser().getPhotoUrl()!=null)
+                profilePhotoPath = auth.getCurrentUser().getPhotoUrl().toString();
+            else
+                profilePhotoPath = null;
+        }
+        else {
+            startActivity(new Intent(PhotoActivity.this, LoginActivity.class));
+            finish();
+        }
         //location
         mLocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         mLocListener = new LocationListener() {
@@ -193,6 +219,7 @@ public class PhotoActivity extends AppCompatActivity
                     tLocation.setText(addresses.get(0).getLocality()+", "+addresses.get(0).getCountryName());
                 } catch (IOException e) {
                     e.printStackTrace();
+                    tLocation.setText("No location");
                 }
 
             }
@@ -221,7 +248,7 @@ public class PhotoActivity extends AppCompatActivity
         mStorage = FirebaseStorage.getInstance().getReference();
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        profileImg = (ImageButton) findViewById(R.id.profilePicture);
+        profileImg = (CircleImageView) findViewById(R.id.profilePicture);
         profileName = (TextView) findViewById(R.id.profileName);
         profileDescription = (TextView) findViewById(R.id.profileDescription);
         photoPH = (TextView) findViewById(R.id.photoPlaceHolder);
@@ -234,14 +261,24 @@ public class PhotoActivity extends AppCompatActivity
             public void onClick(View view, int position) {
                 Log.d(TAG, "Normal press");
                 Intent intent = new Intent(activity,PostActivity.class);
-                intent.putExtra(TAG, photoList.get(position));
+                intent.putExtra("List", photoList);
+                intent.putExtra("Position",position);
+                intent.putExtra("Username",userName);
+                intent.putExtra("Uid",auth.getCurrentUser().getUid());
+                intent.putExtra("Internet",internetEn);
                 startActivity(intent);
             }
+
 
             @Override
             public void onLongClick(View view, int position) {
                 Log.d(TAG, "Long press");
-                checkDeletePost(position);
+                if(isInternetAvailable())
+                    checkDeletePost(position);
+                else {
+                    Log.e(TAG,"No internet connection for this function to work");
+                    Toast.makeText(context,"No internet connection. Function is disabled",Toast.LENGTH_LONG).show();
+                }
             }
         }));
 
@@ -255,20 +292,38 @@ public class PhotoActivity extends AppCompatActivity
         profileDescription.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                eDescription.setVisibility(View.VISIBLE);
-                editButton.setVisibility(View.VISIBLE);
-                deleteButton.setVisibility(View.VISIBLE);
-                String description = profileDescription.getText().toString();
-                profileDescription.setVisibility(View.INVISIBLE);
-                eDescription.setText(description);
-                return true;
+                if(isInternetAvailable()) {
+                    eDescription.setVisibility(View.VISIBLE);
+                    editButton.setVisibility(View.VISIBLE);
+                    deleteButton.setVisibility(View.VISIBLE);
+                    String description = profileDescription.getText().toString();
+                    profileDescription.setVisibility(View.INVISIBLE);
+                    eDescription.setText(description);
+                    return true;
+                }
+                else {
+                    Log.e(TAG,"No internet connection for this function to work");
+                    Toast.makeText(context,"No internet connection. Function is disabled",Toast.LENGTH_LONG).show();
+                    return false;
+                }
+            }
+        });
+        eDescription.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus) {
+                    eDescription.setVisibility(View.GONE);
+                    editButton.setVisibility(View.GONE);
+                    deleteButton.setVisibility(View.GONE);
+                    profileDescription.setVisibility(View.VISIBLE);
+                }
             }
         });
         editButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String description = eDescription.getText().toString();
-                db.collection("users").document(auth.getUid()).update("description", description).addOnSuccessListener(new OnSuccessListener<Void>() {
+                db.collection("users").document(auth.getCurrentUser().getUid()).update("description", description).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
                         //Toast.makeText(PhotoActivity.this,"Profile picture updated succesfully!",Toast.LENGTH_LONG).show();
@@ -311,18 +366,32 @@ public class PhotoActivity extends AppCompatActivity
                     Toast.makeText(PhotoActivity.this, "Profile picture not loaded!", Toast.LENGTH_LONG).show();
                     return;
                 }
-                if (documentSnapshot != null && documentSnapshot.exists() && documentSnapshot.get("downloadImgPath") != null) {
-                    Log.d(TAG, "Download url for profile picture is " + (String) documentSnapshot.get("downloadImgPath"));
-                    profilePhotoPath = (String) documentSnapshot.get("img_path");
-                    Picasso.with(context)
-                            .load((String) documentSnapshot.get("downloadImgPath")) // thumnail url goes here
-                            .resize(300, 300)
-                            .centerCrop()
-                            .placeholder(R.drawable.ic_launcher_foreground)
-                            .into(profileImg);
-                    profileName.setText((String) documentSnapshot.get("name"));
+
+                if (documentSnapshot != null && documentSnapshot.exists() ) {
+                    userName = (String) documentSnapshot.get("name");
+                    profileName.setText(userName);
                     if (documentSnapshot.get("description") != null) {
                         profileDescription.setText((String) documentSnapshot.get("description"));
+                    }
+                    if( documentSnapshot.get("downloadImgPath") != null) {
+                        Log.d(TAG, "Download url for profile picture is " + (String) documentSnapshot.get("downloadImgPath"));
+                        profilePhotoImgPath = (String) documentSnapshot.get("img_path");
+                        if (profilePhotoPath == null || profilePhotoPath.equals(""))
+                            profilePhotoPath = (String) documentSnapshot.get("downloadImgPath");
+                        Picasso.with(context)
+                                .load(profilePhotoPath) // thumnail url goes here
+                                .resize(300, 300)
+                                .centerCrop()
+                                .placeholder(R.drawable.placeholder_img)
+                                .error(R.drawable.img_person)
+                                .into(profileImg);
+                    }
+                    else {
+                        Picasso.with(context)
+                                .load(R.drawable.img_person) // thumnail url goes here
+                                .resize(300, 300)
+                                .centerCrop()
+                                .into(profileImg);
                     }
 
                 }
@@ -341,7 +410,7 @@ public class PhotoActivity extends AppCompatActivity
                 mStorage.child(p.imgPath).getMetadata().addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        databaseReference.child("posts").child(auth.getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        databaseReference.child("posts").child(auth.getCurrentUser().getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
                                 Log.d(TAG, "DB record deleted because storage doesn't exists");
@@ -373,7 +442,7 @@ public class PhotoActivity extends AppCompatActivity
                 mStorage.child(p.imgPath).getMetadata().addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        databaseReference.child("posts").child(auth.getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        databaseReference.child("posts").child(auth.getCurrentUser().getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
                                 Log.d(TAG, "DB record deleted because storage doesn't exists");
@@ -429,19 +498,81 @@ public class PhotoActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //require_permission();
-                profile_en = false;
-                mLocation = null;
-                if (mImageUri != null) createDialogForUpload();
-                else add_photo();
+                if(isInternetAvailable()) {
+                    profile_en = false;
+                    mLocation = null;
+                    if (mImageUri != null) createDialogForUpload();
+                    else add_photo();
+                }
+                else {
+                    Log.e(TAG,"No internet connection for this function to work");
+                    Toast.makeText(context,"No internet connection. Function is disabled",Toast.LENGTH_LONG).show();
+                }
             }
         });
         profileImg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mLocation = null;
-                profile_en = true;
-                add_photo();
+                if(isInternetAvailable()) {
+                    mLocation = null;
+                    profile_en = true;
+                    add_photo();
+                }
+                else {
+                    Log.e(TAG,"No internet connection for this function to work");
+                    Toast.makeText(context,"No internet connection. Function is disabled",Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+        profileImg.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Log.d(TAG, "Long press profile picture");
+                if(profilePhotoImgPath==null) return true;
+                final AlertDialog.Builder myAlertDialog = new AlertDialog.Builder(PhotoActivity.this);
+                myAlertDialog.setTitle("Delete profile picture");
+                myAlertDialog.setMessage("Do you want to delete your profile picture?");
+
+                myAlertDialog.setNeutralButton("No",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                myAlertDialog.setPositiveButton("Yes",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface arg0, int arg1) {
+                                HashMap<String,Object> map = new HashMap<String,Object>();
+                                map.put("img_path",null);
+                                map.put("downloadImgPath",null);
+                                db.collection("users").document(auth.getCurrentUser().getUid()).update(map).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if(task.isSuccessful()) {
+                                            Toast.makeText(context,"Profile picture deleted",Toast.LENGTH_LONG).show();
+                                        }
+                                        else {
+                                            Toast.makeText(context,"Error at deleting profile picture",Toast.LENGTH_LONG).show();
+                                        }
+                                    }
+                                });
+
+                                int remove_from_db = 1;
+                                for(PhotoPost p:photoList) {
+                                    if(p.downloadImgPath.equals(profilePhotoPath)) remove_from_db = 0;
+                                }
+                                if(remove_from_db == 1) {
+                                    Log.d(TAG,"Deleting the profile picture from storage also, "+profilePhotoImgPath+", " +profilePhotoPath);
+                                    mStorage.child(profilePhotoImgPath).delete();
+                                }
+                                profilePhotoPath = null;
+                                profilePhotoImgPath = null;
+                            }
+                        });
+
+                myAlertDialog.show();
+                return true;
             }
         });
 
@@ -460,8 +591,8 @@ public class PhotoActivity extends AppCompatActivity
                         mProgress.show();
                         final PhotoPost p = photoList.get(position);
                         //check if it is profile picture also
-                        if (p.imgPath.equals(profilePhotoPath)) { //delete only the post
-                            databaseReference.child("posts").child(auth.getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        if (p.downloadImgPath.equals(profilePhotoPath)) { //delete only the post
+                            databaseReference.child("posts").child(auth.getCurrentUser().getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
                                     Log.d(TAG, "Photo deleted from db also");
@@ -475,7 +606,7 @@ public class PhotoActivity extends AppCompatActivity
                             @Override
                             public void onSuccess(Void aVoid) {
                                 Log.d(TAG, "Photo deleted from storage");
-                                databaseReference.child("posts").child(auth.getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                databaseReference.child("posts").child(auth.getCurrentUser().getUid()).child(p.timestamp).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
                                     public void onSuccess(Void aVoid) {
                                         Log.d(TAG, "Photo deleted from db also");
@@ -528,6 +659,55 @@ public class PhotoActivity extends AppCompatActivity
 //        } else {
 //            location_en = true;
 //        }
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null;
+    }
+
+    private boolean hasInternetAccess(Context context) {
+        if (isNetworkAvailable()) {
+            try {
+                HttpURLConnection urlc = (HttpURLConnection)
+                        (new URL("http://clients3.google.com/generate_204")
+                                .openConnection());
+                urlc.setRequestProperty("User-Agent", "Android");
+                urlc.setRequestProperty("Connection", "close");
+                urlc.setConnectTimeout(1500);
+                urlc.connect();
+                return (urlc.getResponseCode() == 204 &&
+                        urlc.getContentLength() == 0);
+            } catch (IOException e) {
+                Log.e(TAG, "Error checking internet connection", e);
+            }
+        } else {
+            Log.d(TAG, "No network available!");
+        }
+        return false;
+    }
+
+    private boolean isInternetAvailableOnce() {
+        final boolean[] internetActive = new boolean[1];
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                internetActive[0] = hasInternetAccess(context);
+            }
+        });
+        t.start();
+        try {
+            t.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return internetActive[0];
+    }
+    private boolean isInternetAvailable() {
+        return internetEn;
     }
 
     private void add_photo() {
@@ -708,10 +888,10 @@ public class PhotoActivity extends AppCompatActivity
     }
 
     private void updateDBAfterUpload(Uri imageUri, final PhotoPost p, Uri uri) {
-        if (p != null) {
+        if (p != null && profile_en == false) {
             p.downloadImgPath = uri.toString();
             p.imgPath = "images/" + imageUri.getLastPathSegment();
-            databaseReference.child("posts").child(auth.getUid()).child(p.timestamp).setValue(p).addOnSuccessListener(new OnSuccessListener<Void>() {
+            databaseReference.child("posts").child(auth.getCurrentUser().getUid()).child(p.timestamp).setValue(p).addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
                     Toast.makeText(context, "Photo uploaded successfully", Toast.LENGTH_LONG).show();
@@ -745,7 +925,7 @@ public class PhotoActivity extends AppCompatActivity
             Map<String, Object> map = new HashMap<String, Object>();
             map.put("img_path", "images/" + imageUri.getLastPathSegment());
             map.put("downloadImgPath", uri.toString());
-            db.collection("users").document(auth.getUid()).update(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+            db.collection("users").document(auth.getCurrentUser().getUid()).update(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
                     Toast.makeText(PhotoActivity.this, "Profile picture updated succesfully!", Toast.LENGTH_LONG).show();
@@ -756,11 +936,32 @@ public class PhotoActivity extends AppCompatActivity
                     Toast.makeText(PhotoActivity.this, "Error at updating profile picture. Try again later!", Toast.LENGTH_LONG).show();
                 }
             });
+            addProfileImgToUser(auth.getCurrentUser(),uri);
             mImageUri = null;
             profile_en = false;
         }
     }
 
+    private void addProfileImgToUser(FirebaseUser user,Uri uri) {
+
+        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                .setPhotoUri(uri)
+                .build();
+
+        user.updateProfile(profileUpdates)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "User profile picture updated.");
+                        }
+                        else {
+                            //Toast.makeText(context,"Username failed to save. Update it in setting menu",Toast.LENGTH_LONG).show();
+                            Log.e(TAG,"User profile picture update failed");
+                        }
+                    }
+                });
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -838,7 +1039,7 @@ public class PhotoActivity extends AppCompatActivity
             public void onClick(DialogInterface d, int which) {
                 if (mImageUri != null) {
                     PhotoPost p = new PhotoPost();
-                    p.uid = auth.getUid();
+                    p.uid = auth.getCurrentUser().getUid();
                     p.timestamp = getCurrentTimeDate();
                     p.description = tDescription.getText().toString();
                     p.downloadImgPath = null;
@@ -952,8 +1153,8 @@ public class PhotoActivity extends AppCompatActivity
             public void onShow(DialogInterface d) {
                 if(mImageUri != null) {
                     Picasso.with(context).load(mImageUri).resize(250, 0).centerCrop()
-                            .placeholder(R.mipmap.ic_launcher_round)
-                            .error(R.mipmap.ic_launcher)
+                            .placeholder(R.drawable.placeholder_img)
+                            .error(R.drawable.error_img)
                             .into(image);
                 }
                 else {
@@ -1013,50 +1214,28 @@ public class PhotoActivity extends AppCompatActivity
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.photo, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-//
-//        if (id == R.id.nav_camera) {
-//            // Handle the camera action
-//        } else if (id == R.id.nav_gallery) {
-//
-//        } else if (id == R.id.nav_slideshow) {
-//
-//        } else if (id == R.id.nav_manage) {
-//
-//        } else if (id == R.id.nav_share) {
-//
-//        } else if (id == R.id.nav_send) {
-//
-//        }
+        Class nextActivity=null;
+
+        if (id == R.id.nav_calendar) {
+            // Handle the calendar action
+        } else if (id == R.id.nav_friends) {
+            nextActivity = FriendsActivity.class;
+        } else if (id == R.id.nav_requests) {
+            nextActivity = Requests.class;
+        } else if (id == R.id.nav_settings) {
+            nextActivity = MainActivity.class;
+        } else if (id == R.id.nav_photos) {
+            nextActivity = PhotoActivity.class;
+        }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
+        if(nextActivity!=null && nextActivity!=this.getClass()) startActivity(new Intent(this, nextActivity));
         return true;
     }
 
@@ -1064,9 +1243,9 @@ public class PhotoActivity extends AppCompatActivity
     public void onStart() {
         super.onStart();
         //mGoogleApiClient.connect();
-        profileRegistration = db.collection("users").document(auth.getUid()).addSnapshotListener(profileListener);
+        profileRegistration = db.collection("users").document(auth.getCurrentUser().getUid()).addSnapshotListener(profileListener);
         auth.addAuthStateListener(authListener);
-        databaseReference.child("posts").child(auth.getUid()).addChildEventListener(photoEventListener);
+        databaseReference.child("posts").child(auth.getCurrentUser().getUid()).addChildEventListener(photoEventListener);
     }
 
     @Override
@@ -1083,7 +1262,7 @@ public class PhotoActivity extends AppCompatActivity
             profileRegistration = null;
         }
         if(photoEventListener!= null) {
-            databaseReference.child("posts").child(auth.getUid()).removeEventListener(photoEventListener);
+            databaseReference.child("posts").child(auth.getCurrentUser().getUid()).removeEventListener(photoEventListener);
         }
     }
 

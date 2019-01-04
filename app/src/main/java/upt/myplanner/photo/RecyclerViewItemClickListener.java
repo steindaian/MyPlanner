@@ -1,5 +1,6 @@
 package upt.myplanner.photo;
 
+import android.app.Activity;
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.GestureDetector;
@@ -49,9 +50,4 @@ public class RecyclerViewItemClickListener implements RecyclerView.OnItemTouchLi
     public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
 
     }
-}
-interface ClickListener {
-    void onClick(View view, int position);
-
-    void onLongClick(View view, int position);
 }

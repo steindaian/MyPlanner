@@ -1,6 +1,7 @@
 package upt.myplanner.photo;
 
 import android.content.Context;
+import android.graphics.Paint;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -57,13 +58,16 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
             if(pItem.longitude != null && pItem.latitude!=null) {
                 addresses = geocoder.getFromLocation(Double.valueOf(pItem.latitude), Double.valueOf(pItem.longitude), 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
                 holder.tLocation.setText(addresses.get(0).getLocality() + ", " + addresses.get(0).getCountryName());
+                holder.tLocation.setPaintFlags(holder.tLocation.getPaintFlags() |   Paint.UNDERLINE_TEXT_FLAG);
             }
             else {
                 holder.tLocation.setText("No location");
+                holder.tLocation.setPaintFlags(holder.tLocation.getPaintFlags() & ~Paint.UNDERLINE_TEXT_FLAG);
             }
         } catch (IOException e) {
             e.printStackTrace();
             holder.tLocation.setText("No location");
+            holder.tLocation.setPaintFlags(holder.tLocation.getPaintFlags() & ~Paint.UNDERLINE_TEXT_FLAG);
         }
 
         holder.timestamp.setText(pItem.timestamp);
@@ -73,7 +77,8 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
                 .load(pItem.downloadImgPath) // thumnail url goes here
                 .resize(200,200)
                 .centerCrop()
-                .placeholder(R.drawable.ic_launcher_foreground)
+                .placeholder(R.drawable.placeholder_img)
+                .error(R.drawable.error_img)
                 .into(holder.img, new Callback() {
                     @Override
                     public void onSuccess() {
@@ -107,6 +112,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
             tDescription = (TextView) itemView.findViewById(R.id.postDescription);
             timestamp = (TextView)itemView.findViewById(R.id.tTimestamp);
             tLocation = (TextView)itemView.findViewById(R.id.tLocationItem);
+
         }
     }
 }

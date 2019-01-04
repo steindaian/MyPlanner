@@ -39,5 +39,9 @@
     <string name="name">Name</string>
     <string name="title_activity_post">PostActivity</string>
     <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="title_activity_maps2">Map</string>
+    <string name="title_activity_friends">Friends</string>
+    <string name="title_activity_requests">Friend Requests</string>
 
 </resources>

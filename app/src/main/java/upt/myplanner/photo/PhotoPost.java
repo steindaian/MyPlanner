@@ -5,7 +5,7 @@ import android.os.Parcelable;
 
 import java.io.Serializable;
 
-class PhotoPost implements Serializable{
+public class PhotoPost implements Serializable{
     public String getUid() {
         return uid;
     }

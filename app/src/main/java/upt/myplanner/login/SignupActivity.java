@@ -1,5 +1,7 @@
 package upt.myplanner.login;
 
+import android.content.Context;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -19,6 +21,8 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentReference;
@@ -38,13 +42,18 @@ public class SignupActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private FirebaseAuth auth;
     private FirebaseFirestore reference;
+    private Context context = this;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        auth = FirebaseAuth.getInstance();
+
+        if (auth.getCurrentUser() != null) {
+            startActivity(new Intent(SignupActivity.this, MainActivity.class));
+            finish();
+        }
         setContentView(R.layout.activity_signup);
 
-        //Get Firebase auth instance
-        auth = FirebaseAuth.getInstance();
         reference = FirebaseFirestore.getInstance();
 
         btnSignIn = (Button) findViewById(R.id.sign_in_button);
@@ -113,11 +122,13 @@ public class SignupActivity extends AppCompatActivity {
                                             Toast.LENGTH_SHORT).show();
                                     Log.e(SignupActivity.class.getSimpleName(),task.getException().toString());
                                 } else {
+                                    addUserNameToUser(task.getResult().getUser(),name);
+                                    //add profile picture
                                     Map<String, Object> map = new HashMap<String, Object>();
                                     map.put("name", name);
                                     map.put("email", email);
                                     map.put("timestamp",new java.util.Date());
-                                    reference.collection("users").document(auth.getUid()).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    reference.collection("users").document(auth.getCurrentUser().getUid()).set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void aVoid) {
                                             startActivity(new Intent(SignupActivity.this, PhotoActivity.class));
@@ -126,11 +137,12 @@ public class SignupActivity extends AppCompatActivity {
                                     }).addOnFailureListener(new OnFailureListener() {
                                         @Override
                                         public void onFailure(@NonNull Exception e) {
-                                            Toast.makeText(SignupActivity.this, "Authentication failed. " + e,
+                                            Toast.makeText(SignupActivity.this, "Authentication failed. Try again",
                                                     Toast.LENGTH_SHORT).show();
                                             Log.e(SignupActivity.class.getSimpleName(), e.toString());
                                         }
                                     });
+
                                 }
                             }
                         });
@@ -138,6 +150,27 @@ public class SignupActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void addUserNameToUser(FirebaseUser user,String username) {
+
+        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                .setDisplayName(username)
+                .build();
+
+        user.updateProfile(profileUpdates)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d("SignupActivity", "User profile updated.");
+                        }
+                        else {
+                            Toast.makeText(context,"Username failed to save. Update it in setting menu",Toast.LENGTH_LONG).show();
+                            Log.e("SignupActivity","User profile update failed");
+                        }
+                    }
+                });
     }
 
     @Override

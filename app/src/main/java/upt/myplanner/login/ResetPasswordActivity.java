@@ -1,4 +1,5 @@
 package upt.myplanner.login;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -13,6 +14,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
+import upt.myplanner.MainActivity;
 import upt.myplanner.R;
 
 public class ResetPasswordActivity extends AppCompatActivity {
@@ -25,6 +27,13 @@ public class ResetPasswordActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        auth = FirebaseAuth.getInstance();
+
+        if (auth.getCurrentUser() != null) {
+            startActivity(new Intent(ResetPasswordActivity.this, MainActivity.class));
+            finish();
+        }
         setContentView(R.layout.activity_reset_password);
 
         inputEmail = (EditText) findViewById(R.id.email);
