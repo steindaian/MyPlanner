@@ -108,7 +108,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (user == null) {
                     // user auth state is changed - user is null
                     // launch login activity
-                    startActivity(new Intent(MapsActivity.this, LoginActivity.class));
+                    Intent intent = new Intent(MapsActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
                     finish();
                 }
                 else {

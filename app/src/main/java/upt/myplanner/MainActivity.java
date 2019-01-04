@@ -23,6 +23,9 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import upt.myplanner.friends.FriendsActivity;
 import upt.myplanner.friends.Requests;
@@ -42,10 +45,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private EditText newUsername;
     private Button btnChangeUsername;
     private Button changeUsername;
+    private OnCompleteListener<InstanceIdResult> tokenListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        auth = FirebaseAuth.getInstance();
+        if(auth.getCurrentUser()==null) {
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
         setContentView(R.layout.activity_main);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -61,10 +72,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
 
         //get firebase auth instance
-        auth = FirebaseAuth.getInstance();
+
 
         //get current user
         final FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        tokenListener = new OnCompleteListener<InstanceIdResult>() {
+            @Override
+            public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                if (!task.isSuccessful()) {
+                    Log.w("MainActivity", "getInstanceId failed", task.getException());
+                    return;
+                }
+
+                // Get new Instance ID token
+                String token = task.getResult().getToken();
+                FirebaseFirestore.getInstance().collection("users").document(auth.getCurrentUser().getUid()).update("token",token);
+
+
+            }
+        };
 
         authListener = new FirebaseAuth.AuthStateListener() {
             @Override
@@ -73,11 +100,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 if (user == null) {
                     // user auth state is changed - user is null
                     // launch login activity
-                    startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                    Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
                     finish();
+                }
+                else {
+                    FirebaseInstanceId.getInstance().getInstanceId()
+                            .addOnCompleteListener(tokenListener);
                 }
             }
         };
+
+
+
 
         btnChangeUsername = (Button) findViewById(R.id.change_username_button);
         btnChangeEmail = (Button) findViewById(R.id.change_email_button);
@@ -298,6 +334,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        //not complete
         btnRemoveUser.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -308,6 +345,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 @Override
                                 public void onComplete(@NonNull Task<Void> task) {
                                     if (task.isSuccessful()) {
+                                        //delete photos and post. TO DO
                                         Toast.makeText(MainActivity.this, "Your profile is deleted:( Create a account now!", Toast.LENGTH_SHORT).show();
                                         startActivity(new Intent(MainActivity.this, SignupActivity.class));
                                         finish();
@@ -325,7 +363,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         signOut.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                FirebaseFirestore.getInstance().collection("users").document(auth.getCurrentUser().getUid()).update("token",null);
                 signOut();
+
             }
         });
 
@@ -340,12 +380,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onResume() {
         super.onResume();
         progressBar.setVisibility(View.GONE);
+
     }
 
     @Override
     public void onStart() {
         super.onStart();
         auth.addAuthStateListener(authListener);
+
     }
 
     @Override
@@ -354,6 +396,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (authListener != null) {
             auth.removeAuthStateListener(authListener);
         }
+
     }
     @SuppressWarnings("StatementWithEmptyBody")
     @Override

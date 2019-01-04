@@ -106,7 +106,7 @@ public class FriendsViewAdapter extends RecyclerView.Adapter<upt.myplanner.frien
                 .load(pItem.downloadImgPath) // thumnail url goes here
                 .resize(50,50)
                 .centerCrop()
-                .placeholder(R.drawable.placeholder_img)
+                .placeholder(R.drawable.img_person)
                 .error(R.drawable.img_person)
                 .into(holder.img);
     }

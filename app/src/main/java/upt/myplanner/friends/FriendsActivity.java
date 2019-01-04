@@ -102,7 +102,9 @@ public class FriendsActivity extends AppCompatActivity
                 if (user == null) {
                     // user auth state is changed - user is null
                     // launch login activity
-                    startActivity(new Intent(FriendsActivity.this, LoginActivity.class));
+                    Intent intent = new Intent(FriendsActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
                     finish();
                 }
             }
@@ -252,7 +254,7 @@ public class FriendsActivity extends AppCompatActivity
     private void populateFriendsList() {
         friendsList.clear();
         for(MyUser user:userMap.values()) {
-            if(user.friends!=null && user.friends.contains(auth.getCurrentUser().getUid())) {
+            if(user.friends!=null && auth.getCurrentUser()!=null && user.friends.contains(auth.getCurrentUser().getUid())) {
                 noFriendsText.setVisibility(View.GONE);
                 friendsList.add(user);
             }
@@ -305,7 +307,9 @@ public class FriendsActivity extends AppCompatActivity
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
-        if(nextActivity!=null && nextActivity!=this.getClass()) startActivity(new Intent(this, nextActivity));
+        if(nextActivity!=null && nextActivity!=this.getClass()) {
+            startActivity(new Intent(this, nextActivity));
+        }
         return true;
     }
 }

@@ -72,7 +72,8 @@ public class RequestsViewAdapter extends RecyclerView.Adapter<upt.myplanner.frie
                 .load(pItem.downloadImgPath) // thumnail url goes here
                 .resize(50,50)
                 .centerCrop()
-                .placeholder(R.drawable.ic_launcher_foreground)
+                .placeholder(R.drawable.img_person)
+                .error(R.drawable.img_person)
                 .into(holder.img);
 
         holder.approveReq.setOnClickListener(new View.OnClickListener() {

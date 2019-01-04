@@ -183,7 +183,9 @@ public class PhotoActivity extends AppCompatActivity
                 if (user == null) {
                     // user auth state is changed - user is null
                     // launch login activity
-                    startActivity(new Intent(PhotoActivity.this, LoginActivity.class));
+                    Intent intent = new Intent(PhotoActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
                     finish();
                 }
             }
@@ -244,6 +246,7 @@ public class PhotoActivity extends AppCompatActivity
         setContentView(R.layout.activity_photo);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        setTitle("Photos");
         mProgress = new ProgressDialog(this);
         mStorage = FirebaseStorage.getInstance().getReference();
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -323,6 +326,7 @@ public class PhotoActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 String description = eDescription.getText().toString();
+                if(description.equals("")) description="No description";
                 db.collection("users").document(auth.getCurrentUser().getUid()).update("description", description).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
