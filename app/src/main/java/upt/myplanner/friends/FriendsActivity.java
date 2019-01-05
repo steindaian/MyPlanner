@@ -78,9 +78,18 @@ public class FriendsActivity extends AppCompatActivity
     private HashMap<String,MyUser> userMap = new HashMap<String,MyUser>();
     private RecyclerView.Adapter mAdapter;
     private TextView noFriendsText;
+    private EditText searchText;
+    private TextWatcher searchTextWatcher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if(FirebaseAuth.getInstance().getCurrentUser()==null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
         setContentView(R.layout.activity_friends);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -164,7 +173,7 @@ public class FriendsActivity extends AppCompatActivity
         friendsListView.setAdapter(mAdapter);
 
         noFriendsText = (TextView) findViewById(R.id.friendsPlaceHolderText);
-        final EditText searchText = (EditText) findViewById(R.id.searchText);
+        searchText = (EditText) findViewById(R.id.searchText);
         db.collection("users").addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
@@ -182,7 +191,6 @@ public class FriendsActivity extends AppCompatActivity
                     user.friends = (List<String>) doc.getDocument().get("friends");
                     friendListUid = user.friends;
                     user.requests = (List<String>) doc.getDocument().get("requests");
-                    if(!searchText.getText().toString().equals("")) break;
                     //Log.d(TAG,user.friends.toString());
                     switch (doc.getType()) {
                         case ADDED:{
@@ -205,8 +213,7 @@ public class FriendsActivity extends AppCompatActivity
             }
         });
 
-
-        searchText.addTextChangedListener(new TextWatcher() {
+        searchTextWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
@@ -247,7 +254,8 @@ public class FriendsActivity extends AppCompatActivity
             @Override
             public void afterTextChanged(Editable s) {
             }
-        });
+        };
+        searchText.addTextChangedListener(searchTextWatcher);
 
     }
 
@@ -261,6 +269,10 @@ public class FriendsActivity extends AppCompatActivity
         }
         mAdapter.notifyDataSetChanged();
         if(friendsList.size()==0) noFriendsText.setVisibility(View.VISIBLE);
+        if(!searchText.getText().toString().equals("")) {
+            searchTextWatcher.onTextChanged(searchText.getText().toString(),0,0,0);
+
+        }
     }
 
     @Override

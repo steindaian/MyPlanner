@@ -23,9 +23,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher_calendar"
+        android:icon="@mipmap/ic_launcher_calendar"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher_calendar_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <meta-data
@@ -86,7 +86,8 @@
         <activity
             android:name=".friends.UserPhotosActivity"
             android:parentActivityName=".friends.FriendsActivity"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:launchMode="singleTop">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="upt.myplanner.friends.FriendsActivity" />

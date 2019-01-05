@@ -53,6 +53,7 @@ import java.util.Locale;
 
 import upt.myplanner.MainActivity;
 import upt.myplanner.R;
+import upt.myplanner.friends.UserPhotosActivity;
 import upt.myplanner.login.LoginActivity;
 
 public class PostActivity extends AppCompatActivity {
@@ -86,6 +87,12 @@ public class PostActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if(FirebaseAuth.getInstance().getCurrentUser()==null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
         setContentView(R.layout.activity_post);
 
         database = FirebaseDatabase.getInstance();
@@ -142,12 +149,12 @@ public class PostActivity extends AppCompatActivity {
         }
 
 
-
+        setTitle(userNameString+" Photos");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        // Create the adapter that will return a fragment for each of the three
+            // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
 
@@ -157,7 +164,20 @@ public class PostActivity extends AppCompatActivity {
         mViewPager.setCurrentItem(startPosition);
 
     }
-
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            // Respond to the action bar's Up/Home button
+            case android.R.id.home:
+                if(!uid.equals(auth.getCurrentUser().getUid()))
+                    startActivity(new Intent(this, UserPhotosActivity.class));
+                else
+                    startActivity(new Intent(this,PhotoActivity.class));
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
     @Override
     public void onStart() {
         super.onStart();
@@ -249,7 +269,7 @@ class PlaceholderFragment extends Fragment {
                 .centerCrop()
                 .into(img);
 
-        userName.setText(userNameString);
+        userName.setText(userNameString+":");
         description.setText(PostActivity.photoList.get(position).description);
         if(PostActivity.photoList.get(position).longitude != null && PostActivity.photoList.get(position).latitude!=null) {
             Geocoder geocoder;

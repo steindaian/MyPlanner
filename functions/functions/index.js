@@ -19,7 +19,7 @@ exports.triggerFirestore = functions.firestore
 			token: token
 		};
 		if (token && arrayOfReqUsers && arrayOfReqUsers.length > 0) {
-			if(arrayOfReqUsers.length > userBeforeReq.requests.length || (userBeforeReq.token && userBeforeReq.token !== token)) {
+			if(arrayOfReqUsers.length > userBeforeReq.requests.length || userBeforeReq.token !== token) {
 			
 				admin.messaging().send(message)
 				  .then((response) => {

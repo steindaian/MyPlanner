@@ -31,7 +31,9 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.InputFilter;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -43,6 +45,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -292,6 +295,26 @@ public class PhotoActivity extends AppCompatActivity
         deleteButton = (ImageButton) findViewById(R.id.bDeleteDescription);
         eDescription = (EditText) findViewById(R.id.eProfileDescription);
 
+        eDescription.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus) hideKeyboard(activity);
+            }
+        });
+        eDescription.setOnKeyListener(new View.OnKeyListener() {
+
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+
+                if (keyCode == KeyEvent.KEYCODE_ENTER  && event.getAction() == KeyEvent.ACTION_DOWN) {
+
+                    if ( ((EditText)v).getLineCount() >= 7 )
+                        return true;
+                }
+
+                return false;
+            }
+        });
         profileDescription.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
@@ -311,29 +334,19 @@ public class PhotoActivity extends AppCompatActivity
                 }
             }
         });
-        eDescription.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if(!hasFocus) {
-                    eDescription.setVisibility(View.GONE);
-                    editButton.setVisibility(View.GONE);
-                    deleteButton.setVisibility(View.GONE);
-                    profileDescription.setVisibility(View.VISIBLE);
-                }
-            }
-        });
+
         editButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                hideKeyboard(activity);
                 String description = eDescription.getText().toString();
-                if(description.equals("")) description="No description";
                 db.collection("users").document(auth.getCurrentUser().getUid()).update("description", description).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
                         //Toast.makeText(PhotoActivity.this,"Profile picture updated succesfully!",Toast.LENGTH_LONG).show();
-                        editButton.setVisibility(View.INVISIBLE);
-                        deleteButton.setVisibility(View.INVISIBLE);
-                        eDescription.setVisibility(View.INVISIBLE);
+                        editButton.setVisibility(View.GONE);
+                        deleteButton.setVisibility(View.GONE);
+                        eDescription.setVisibility(View.GONE);
                         profileDescription.setVisibility(View.VISIBLE);
                     }
                 }).addOnFailureListener(new OnFailureListener() {
@@ -347,13 +360,15 @@ public class PhotoActivity extends AppCompatActivity
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                editButton.setVisibility(View.INVISIBLE);
-                deleteButton.setVisibility(View.INVISIBLE);
-                eDescription.setVisibility(View.INVISIBLE);
+                editButton.setVisibility(View.GONE);
+                deleteButton.setVisibility(View.GONE);
+                eDescription.setVisibility(View.GONE);
                 profileDescription.setVisibility(View.VISIBLE);
+                hideKeyboard(activity);
             }
         });
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout_photo);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -582,7 +597,16 @@ public class PhotoActivity extends AppCompatActivity
 
     }
 
-
+    public static void hideKeyboard(Activity activity) {
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        //Find the currently focused view, so we can grab the correct window token from it.
+        View view = activity.getCurrentFocus();
+        //If no view currently has focus, create a new one, just so we can grab a window token from it
+        if (view == null) {
+            view = new View(activity);
+        }
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
     private void checkDeletePost(final int position) {
         final AlertDialog.Builder myAlertDialog = new AlertDialog.Builder(context);
         myAlertDialog.setTitle("Delete post");
@@ -1210,7 +1234,7 @@ public class PhotoActivity extends AppCompatActivity
     }
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout_photo);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
@@ -1237,7 +1261,7 @@ public class PhotoActivity extends AppCompatActivity
             nextActivity = PhotoActivity.class;
         }
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout_photo);
         drawer.closeDrawer(GravityCompat.START);
         if(nextActivity!=null && nextActivity!=this.getClass()) startActivity(new Intent(this, nextActivity));
         return true;
