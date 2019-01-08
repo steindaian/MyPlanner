@@ -1,6 +1,7 @@
 package upt.myplanner.photo;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -95,7 +96,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -110,6 +114,7 @@ import javax.annotation.Nullable;
 import de.hdodenhof.circleimageview.CircleImageView;
 import upt.myplanner.MainActivity;
 import upt.myplanner.R;
+import upt.myplanner.calendar.CalendarActivity;
 import upt.myplanner.friends.FriendsActivity;
 import upt.myplanner.friends.Requests;
 import upt.myplanner.login.LoginActivity;
@@ -171,14 +176,40 @@ public class PhotoActivity extends AppCompatActivity
 
     private boolean internetEn = false;
     private String profilePhotoImgPath = null;
+    private String uid;
+    private boolean checkConn = true;
+    private CheckBox checkBox;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        internetEn = isInternetAvailableOnce();
+        auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         databaseReference = FirebaseDatabase.getInstance().getReference();
-        auth = FirebaseAuth.getInstance();
+        if(FirebaseAuth.getInstance().getCurrentUser()==null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            checkConn = false;
+            finish();
+        }
+        else {
+            try {
+                uid = auth.getCurrentUser().getUid();
+                userName = auth.getCurrentUser().getDisplayName();
+                if(auth.getCurrentUser().getPhotoUrl()!=null)
+                    profilePhotoPath = auth.getCurrentUser().getPhotoUrl().toString();
+                else
+                    profilePhotoPath = null;
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                super.onBackPressed();
+                checkConn = false;
+                finish();
+            }
+        }
+
         authListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -189,25 +220,12 @@ public class PhotoActivity extends AppCompatActivity
                     Intent intent = new Intent(PhotoActivity.this, LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
+                    checkConn = false;
                     finish();
                 }
             }
         };
-        if(auth.getUid() == null || auth.getUid().isEmpty()) {
-            startActivity(new Intent(PhotoActivity.this, LoginActivity.class));
-            finish();
-        }
-        if(auth.getCurrentUser() != null) {
-            userName = auth.getCurrentUser().getDisplayName();
-            if(auth.getCurrentUser().getPhotoUrl()!=null)
-                profilePhotoPath = auth.getCurrentUser().getPhotoUrl().toString();
-            else
-                profilePhotoPath = null;
-        }
-        else {
-            startActivity(new Intent(PhotoActivity.this, LoginActivity.class));
-            finish();
-        }
+
         //location
         mLocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         mLocListener = new LocationListener() {
@@ -272,6 +290,7 @@ public class PhotoActivity extends AppCompatActivity
                 intent.putExtra("Username",userName);
                 intent.putExtra("Uid",auth.getCurrentUser().getUid());
                 intent.putExtra("Internet",internetEn);
+                checkConn = false;
                 startActivity(intent);
             }
 
@@ -547,6 +566,11 @@ public class PhotoActivity extends AppCompatActivity
             @Override
             public boolean onLongClick(View v) {
                 Log.d(TAG, "Long press profile picture");
+                if(!isInternetAvailable()) {
+                    Log.e(TAG,"No internet connection for this function to work");
+                    Toast.makeText(context,"No internet connection. Function is disabled",Toast.LENGTH_LONG).show();
+                    return true;
+                }
                 if(profilePhotoImgPath==null) return true;
                 final AlertDialog.Builder myAlertDialog = new AlertDialog.Builder(PhotoActivity.this);
                 myAlertDialog.setTitle("Delete profile picture");
@@ -695,44 +719,41 @@ public class PhotoActivity extends AppCompatActivity
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null;
     }
+    public static boolean isReachable(String targetUrl) {
 
-    private boolean hasInternetAccess(Context context) {
-        if (isNetworkAvailable()) {
-            try {
-                HttpURLConnection urlc = (HttpURLConnection)
-                        (new URL("http://clients3.google.com/generate_204")
-                                .openConnection());
-                urlc.setRequestProperty("User-Agent", "Android");
-                urlc.setRequestProperty("Connection", "close");
-                urlc.setConnectTimeout(1500);
-                urlc.connect();
-                return (urlc.getResponseCode() == 204 &&
-                        urlc.getContentLength() == 0);
-            } catch (IOException e) {
-                Log.e(TAG, "Error checking internet connection", e);
-            }
-        } else {
-            Log.d(TAG, "No network available!");
+
+        try
+        {
+            HttpURLConnection httpUrlConnection = (HttpURLConnection) new URL(
+                    targetUrl).openConnection();
+            httpUrlConnection.setRequestMethod("HEAD");
+            int responseCode = httpUrlConnection.getResponseCode();
+
+            return responseCode == HttpURLConnection.HTTP_OK;
+        } catch (Exception noInternetConnection)
+        {
+            return false;
         }
-        return false;
     }
-
-    private boolean isInternetAvailableOnce() {
+    @Override
+    public void onResume() {
+        super.onResume();
+        isInternetAvailableOnce();
+    }
+    private void isInternetAvailableOnce() {
         final boolean[] internetActive = new boolean[1];
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                internetActive[0] = hasInternetAccess(context);
+                while(checkConn) {
+                    if(internetEn==false)
+                        internetEn = isReachable("https://www.google.com/");
+                }
+
             }
         });
         t.start();
-        try {
-            t.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return internetActive[0];
+
     }
     private boolean isInternetAvailable() {
         return internetEn;
@@ -1096,9 +1117,7 @@ public class PhotoActivity extends AppCompatActivity
         dialog.setView(dialogLayout);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         tLocation = (TextView) dialogLayout.findViewById(R.id.tLocation);
-        final CheckBox checkBox = ((CheckBox) dialogLayout.findViewById(R.id.cLocation));
-        //((CheckBox) dialogLayout.findViewById(R.id.cLocation)).setEnabled(location_en);
-        checkBox.setChecked(buttonLoc_en);
+        checkBox = ((CheckBox) dialogLayout.findViewById(R.id.cLocation));
         checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -1108,25 +1127,19 @@ public class PhotoActivity extends AppCompatActivity
                     SettingsClient client = LocationServices.getSettingsClient(context);
                     Task<LocationSettingsResponse> task = client.checkLocationSettings(locBuilder.build());
                     task.addOnSuccessListener(activity, new OnSuccessListener<LocationSettingsResponse>() {
+                        @SuppressLint("MissingPermission")
                         @Override
                         public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
                             // All location settings are satisfied. The client can initialize
                             // location requests here.
                             // ...
-                            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                checkBox.setChecked(false);
-                                mLocation = null;
-                                ActivityCompat.requestPermissions(activity,
-                                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},
-                                        LOCATION_REQUEST);
 
-                                return;
+                            if(isInternetAvailable()) {
+                                mLocManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, mLocListener);
                             }
-                            Log.d(TAG,"Location Requested");
-
-                            mLocManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, mLocListener);
-                            if(gpsEnabled()) {
-                                Log.d(TAG,"GPS enabled");
+                            else if(gpsEnabled()) {
+                                Toast.makeText(activity,"Network location disabled because no internet connection. Trying GPS",Toast.LENGTH_LONG).show();
+                                Log.d(TAG,"GPS enabled,Network not");
                                 mLocManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocListener);
                             }
                             else {
@@ -1143,6 +1156,7 @@ public class PhotoActivity extends AppCompatActivity
                         @Override
                         public void onFailure(@NonNull Exception e) {
                             mLocation = null;
+                            checkBox.setChecked(false);
                             if (e instanceof ResolvableApiException) {
                                 // Location settings are not satisfied, but this can be fixed
                                 // by showing the user a dialog.
@@ -1154,11 +1168,11 @@ public class PhotoActivity extends AppCompatActivity
                                             REQUEST_CHECK_SETTINGS);
                                 } catch (IntentSender.SendIntentException sendEx) {
                                     // Ignore the error.
-                                    buttonLoc_en = false;
+
                                 }
                             }
                             else {
-                                buttonLoc_en = false;
+                                checkBox.setEnabled(false);
                             }
                         }
                     });
@@ -1192,6 +1206,17 @@ public class PhotoActivity extends AppCompatActivity
         });
 
         dialog.show();
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG,"Location Requested");
+            mLocation = null;
+            //dialog.dismiss();
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_REQUEST);
+
+            return;
+        }
+
     }
 
 
@@ -1225,9 +1250,12 @@ public class PhotoActivity extends AppCompatActivity
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     location_en = true;
+                    checkBox.setEnabled(true);
                 } else {
                     location_en = false;
+                    checkBox.setEnabled(false);
                 }
+                //createDialogForUpload();
                 return;
             }
         }
@@ -1250,7 +1278,7 @@ public class PhotoActivity extends AppCompatActivity
         Class nextActivity=null;
 
         if (id == R.id.nav_calendar) {
-            // Handle the calendar action
+            nextActivity = CalendarActivity.class;
         } else if (id == R.id.nav_friends) {
             nextActivity = FriendsActivity.class;
         } else if (id == R.id.nav_requests) {
@@ -1263,7 +1291,10 @@ public class PhotoActivity extends AppCompatActivity
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout_photo);
         drawer.closeDrawer(GravityCompat.START);
-        if(nextActivity!=null && nextActivity!=this.getClass()) startActivity(new Intent(this, nextActivity));
+        if(nextActivity!=null && nextActivity!=this.getClass()) {
+            checkConn = false;
+            startActivity(new Intent(this, nextActivity));
+        }
         return true;
     }
 
@@ -1271,6 +1302,7 @@ public class PhotoActivity extends AppCompatActivity
     public void onStart() {
         super.onStart();
         //mGoogleApiClient.connect();
+        checkConn = true;
         profileRegistration = db.collection("users").document(auth.getCurrentUser().getUid()).addSnapshotListener(profileListener);
         auth.addAuthStateListener(authListener);
         databaseReference.child("posts").child(auth.getCurrentUser().getUid()).addChildEventListener(photoEventListener);
@@ -1279,9 +1311,7 @@ public class PhotoActivity extends AppCompatActivity
     @Override
     public void onStop() {
         super.onStop();
-//        if (mGoogleApiClient.isConnected()) {
-//            mGoogleApiClient.disconnect();
-//        }
+        checkConn = false;
         if (authListener != null) {
             auth.removeAuthStateListener(authListener);
         }

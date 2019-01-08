@@ -27,6 +27,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
 
+import upt.myplanner.calendar.CalendarActivity;
 import upt.myplanner.friends.FriendsActivity;
 import upt.myplanner.friends.Requests;
 import upt.myplanner.login.LoginActivity;
@@ -406,7 +407,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Class nextActivity=null;
 
         if (id == R.id.nav_calendar) {
-            // Handle the calendar action
+            nextActivity = CalendarActivity.class;
         } else if (id == R.id.nav_friends) {
             nextActivity = FriendsActivity.class;
         } else if (id == R.id.nav_requests) {

@@ -75,16 +75,33 @@ public class UserPhotosActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mStorage = FirebaseStorage.getInstance().getReference();
+        db = FirebaseFirestore.getInstance();
+        databaseReference = FirebaseDatabase.getInstance().getReference();
+        auth = FirebaseAuth.getInstance();
+        if(FirebaseAuth.getInstance().getCurrentUser()==null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+        else {
+            try {
+                userUid = auth.getCurrentUser().getUid();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                this.onBackPressed();
+                finish();
+            }
+        }
         setContentView(R.layout.activity_user_photos);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        mStorage = FirebaseStorage.getInstance().getReference();
-        db = FirebaseFirestore.getInstance();
-        databaseReference = FirebaseDatabase.getInstance().getReference();
-        auth = FirebaseAuth.getInstance();
+
         authListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -103,6 +120,10 @@ public class UserPhotosActivity extends AppCompatActivity {
             userName = getIntent().getStringExtra("Name");
             if(userUid==null || userUid.isEmpty() || userUid.equals("")) {
                 super.onBackPressed();
+                finish();
+            }
+            if(userUid.equals(auth.getCurrentUser().getUid())) {
+                startActivity(new Intent(this,PhotoActivity.class));
                 finish();
             }
         }

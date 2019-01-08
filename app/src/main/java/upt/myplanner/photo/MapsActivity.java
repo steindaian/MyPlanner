@@ -87,6 +87,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        database = FirebaseDatabase.getInstance();
+        auth = FirebaseAuth.getInstance();
+        if(FirebaseAuth.getInstance().getCurrentUser()==null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+        else {
+            try {
+                uid = auth.getCurrentUser().getUid();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                this.onBackPressed();
+                finish();
+            }
+        }
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -99,8 +117,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
 
-        database = FirebaseDatabase.getInstance();
-        auth = FirebaseAuth.getInstance();
+
         authListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -113,19 +130,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     startActivity(intent);
                     finish();
                 }
-                else {
-                    uid = auth.getCurrentUser().getUid();
-                }
             }
         };
-
-        if(auth.getCurrentUser().getUid() == null || auth.getCurrentUser().getUid().isEmpty()) {
-            startActivity(new Intent(MapsActivity.this, LoginActivity.class));
-            finish();
-        }
-        else {
-            uid = auth.getCurrentUser().getUid();
-        }
 
         try {
             if (getIntent().getExtras() != null) {
@@ -247,12 +253,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onInfoWindowClick(Marker marker) {
         marker.hideInfoWindow();
         Intent intent = new Intent(MapsActivity.this,PostActivity.class);
+        Log.d(TAG,"When i click on info window i transmit the uid: "+uid);
         intent.putExtra("Uid",uid);
         intent.putExtra("Username",username);
         intent.putExtra("List",photoList);
         intent.putExtra("Position",photoList.indexOf(marker.getTag()));
+        intent.putExtra("Internet",getIntent().getBooleanExtra("Internet",false));
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
-
     }
 
     private String getLocationName(Double lat,Double lon) {

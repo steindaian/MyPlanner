@@ -44,5 +44,8 @@
     <string name="title_activity_friends">Friends</string>
     <string name="title_activity_requests">Friend Requests</string>
     <string name="request_notification">Friend Requests</string>
+    <string name="title_activity_calendar">Calendar</string>
+    <string name="title_activity_event">Events</string>
+    <string name="title_activity_add_event">AddEvent</string>
 
 </resources>

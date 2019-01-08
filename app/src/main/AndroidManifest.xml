@@ -35,15 +35,19 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-
         <service android:name=".MyFirebaseMessagingService">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-        <activity android:name=".login.LoginActivity" android:launchMode="singleTask" />
-        <activity android:name=".login.SignupActivity" android:launchMode="singleTask" />
-        <activity android:name=".MainActivity" >
+
+        <activity
+            android:name=".login.LoginActivity"
+            android:launchMode="singleTask" />
+        <activity
+            android:name=".login.SignupActivity"
+            android:launchMode="singleTask" />
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -59,7 +63,6 @@
         <activity
             android:name=".photo.PostActivity"
             android:label="@string/title_activity_post"
-            android:launchMode="singleTop"
             android:parentActivityName=".photo.PhotoActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <meta-data
@@ -80,14 +83,11 @@
             android:label="@string/title_activity_friends"
             android:launchMode="singleTop"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            android:windowSoftInputMode="adjustNothing">
-
-        </activity>
+            android:windowSoftInputMode="adjustNothing" />
         <activity
             android:name=".friends.UserPhotosActivity"
             android:parentActivityName=".friends.FriendsActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            android:launchMode="singleTop">
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="upt.myplanner.friends.FriendsActivity" />
@@ -95,7 +95,29 @@
         <activity
             android:name=".friends.Requests"
             android:label="@string/title_activity_requests"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"></activity>
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".calendar.CalendarActivity"
+            android:label="@string/title_activity_calendar"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".calendar.EventActivity"
+            android:label="@string/title_activity_event"
+            android:parentActivityName=".calendar.CalendarActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="upt.myplanner.calendar.CalendarActivity" />
+        </activity>
+        <activity
+            android:name=".calendar.AddEventActivity"
+            android:label="@string/title_activity_add_event"
+            android:parentActivityName=".calendar.CalendarActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="upt.myplanner.calendar.CalendarActivity" />
+        </activity>
     </application>
 
 </manifest>

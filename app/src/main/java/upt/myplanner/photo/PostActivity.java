@@ -42,6 +42,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageMetadata;
 import com.squareup.picasso.Picasso;
 
@@ -74,7 +75,7 @@ public class PostActivity extends AppCompatActivity {
     private ViewPager mViewPager;
     public static ArrayList<PhotoPost> photoList;
     int startPosition;
-    public static String uid;
+    public String uid;
     private FirebaseAuth auth;
     private FirebaseAuth.AuthStateListener authListener;
     private FirebaseDatabase database;
@@ -87,17 +88,27 @@ public class PostActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        database = FirebaseDatabase.getInstance();
+        dbStore = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
         if(FirebaseAuth.getInstance().getCurrentUser()==null) {
             Intent intent = new Intent(this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
         }
+        else {
+            try {
+                uid = auth.getCurrentUser().getUid();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                this.onBackPressed();
+                finish();
+            }
+        }
         setContentView(R.layout.activity_post);
 
-        database = FirebaseDatabase.getInstance();
-        dbStore = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
         authListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -110,24 +121,13 @@ public class PostActivity extends AppCompatActivity {
                     startActivity(intent);
                     finish();
                 }
-                else {
-
-                }
             }
         };
-        if(auth.getCurrentUser().getUid() == null || auth.getCurrentUser().getUid().isEmpty()) {
-            startActivity(new Intent(PostActivity.this, LoginActivity.class));
-            finish();
-        }
-        else {
-            uid = auth.getCurrentUser().getUid();
-        }
+
 
         try {
             if(getIntent().getExtras() != null) {
-                if (getIntent().getStringExtra("Uid") != null && !getIntent().getStringExtra("Uid").equals("")) {
-                    uid = getIntent().getStringExtra("Uid");
-                }
+                uid = getIntent().getStringExtra("Uid");
                 startPosition = getIntent().getIntExtra("Position", -1);
                 if (startPosition == -1) {
                     startPosition = 0;
@@ -169,8 +169,16 @@ public class PostActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             // Respond to the action bar's Up/Home button
             case android.R.id.home:
-                if(!uid.equals(auth.getCurrentUser().getUid()))
-                    startActivity(new Intent(this, UserPhotosActivity.class));
+                Log.d(TAG,"The uid of the page is: "+uid);
+                Log.d(TAG,"My uid is: "+auth.getCurrentUser().getUid());
+                if(!uid.equals(auth.getCurrentUser().getUid())) {
+                    Log.d(TAG,"Here on back");
+                    Intent intent = getParentActivityIntent();
+                    intent.setClass(this,UserPhotosActivity.class);
+                    //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TAS);
+                    startActivity(intent);
+                }
+
                 else
                     startActivity(new Intent(this,PhotoActivity.class));
                 finish();
@@ -212,7 +220,7 @@ public class PostActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position,context,userNameString);
+            return PlaceholderFragment.newInstance(position,context,userNameString,uid);
         }
 
         @Override
@@ -232,6 +240,7 @@ class PlaceholderFragment extends Fragment {
     private static Context context;
     private static PlaceholderFragment instance;
     private static String userNameString;
+    private static String uid;
     public PlaceholderFragment() {
     }
 
@@ -239,11 +248,12 @@ class PlaceholderFragment extends Fragment {
      * Returns a new instance of this fragment for the given section
      * number.
      */
-    public static PlaceholderFragment newInstance(int sectionNumber,Context myContext,String myUser) {
+    public static PlaceholderFragment newInstance(int sectionNumber,Context myContext,String myUser,String myUid) {
         PlaceholderFragment fragment = new PlaceholderFragment();
         Bundle args = new Bundle();
         context = myContext;
         userNameString = myUser;
+        uid = myUid;
         args.putInt(ARG_SECTION_NUMBER, sectionNumber);
         fragment.setArguments(args);
         return fragment;
@@ -286,12 +296,16 @@ class PlaceholderFragment extends Fragment {
                         public void onClick(View v) {
                             Intent intent = new Intent(getActivity(), MapsActivity.class);
                             intent.putExtra("Position", position);
-                            intent.putExtra("Uid", PostActivity.uid);
+                            intent.putExtra("Uid", uid);
                             intent.putExtra("Username", userNameString);
                             intent.putExtra("List", PostActivity.photoList);
+                            intent.putExtra("Internet",PostActivity.internetAvailable);
                             startActivity(intent);
                         }
                     });
+                }
+                else {
+                    Log.e("PostActivity","No internet connection");
                 }
             } catch (IOException e) {
                 e.printStackTrace();

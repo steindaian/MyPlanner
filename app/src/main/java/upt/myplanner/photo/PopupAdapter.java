@@ -84,19 +84,6 @@ public class PopupAdapter implements GoogleMap.InfoWindowAdapter {
             tv.setText(marker.getTitle());
 
 
-//            Uri image=images.get(marker.getId());
-//            ImageView icon=(ImageView)popup.findViewById(R.id.marker_icon);
-//
-//            if (image == null) {
-//                icon.setVisibility(View.GONE);
-//            }
-//            else {
-//                Picasso.with(ctxt).load(image)
-//                        .resize(iconWidth,iconHeight)
-//                        .placeholder(R.drawable.placeholder_img)
-//                        .error(R.drawable.error_img)
-//                        .into(icon, new MarkerCallback(marker));
-//            }
         }
 
         return(popup);

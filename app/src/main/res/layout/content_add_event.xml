@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:visibility="visible"
+    tools:context=".calendar.AddEventActivity"
+    tools:showIn="@layout/activity_add_event"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="40dp"
+        android:text="Date"
+        android:textStyle="bold"
+        android:textSize="40dp"
+        />
+
+    <TextView
+        android:id="@+id/tName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tDate"
+        android:text="Name of the event:"
+        android:layout_marginTop="10dp"
+        />
+    <EditText
+        android:id="@+id/eName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tDate"
+        android:layout_toRightOf="@id/tName"
+        android:hint="Name"
+        android:layout_marginLeft="10dp"
+        />
+
+    <TextView
+        android:id="@+id/tStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/eName"
+        android:text="Start time:"
+        android:layout_marginTop="15dp"
+        />
+
+    <EditText
+        android:id="@+id/eStart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/eName"
+        android:layout_toRightOf="@id/tName"
+        android:hint="Start time:"
+        android:inputType="time"
+        android:layout_marginLeft="10dp"
+        />
+    <TextView
+        android:id="@+id/tEnd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/eStart"
+        android:text="End time:"
+        android:layout_marginTop="15dp"
+        />
+    <EditText
+        android:id="@+id/eEnd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/eStart"
+        android:layout_toRightOf="@id/tName"
+        android:hint="End time:"
+        android:inputType="time"
+        android:layout_marginLeft="10dp"
+        />
+    <TextView
+        android:id="@+id/tDescr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/eEnd"
+        android:text="Description:"
+        android:layout_marginTop="15dp"
+        />
+    <EditText
+        android:id="@+id/eDescr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/eEnd"
+        android:layout_toRightOf="@id/tName"
+        android:hint="Description"
+        android:layout_marginLeft="10dp"
+        android:maxLength="100"
+        />
+
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:text="Save" />
+
+
+
+</RelativeLayout>
+
