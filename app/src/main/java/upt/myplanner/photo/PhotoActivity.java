@@ -414,8 +414,7 @@ public class PhotoActivity extends AppCompatActivity
                     if( documentSnapshot.get("downloadImgPath") != null) {
                         Log.d(TAG, "Download url for profile picture is " + (String) documentSnapshot.get("downloadImgPath"));
                         profilePhotoImgPath = (String) documentSnapshot.get("img_path");
-                        if (profilePhotoPath == null || profilePhotoPath.equals(""))
-                            profilePhotoPath = (String) documentSnapshot.get("downloadImgPath");
+                        profilePhotoPath = (String) documentSnapshot.get("downloadImgPath");
                         Picasso.with(context)
                                 .load(profilePhotoPath) // thumnail url goes here
                                 .resize(300, 300)
