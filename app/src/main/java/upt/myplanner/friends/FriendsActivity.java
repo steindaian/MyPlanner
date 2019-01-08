@@ -54,6 +54,7 @@ import javax.annotation.Nullable;
 
 import upt.myplanner.MainActivity;
 import upt.myplanner.R;
+import upt.myplanner.calendar.CalendarActivity;
 import upt.myplanner.login.LoginActivity;
 import upt.myplanner.photo.ClickListener;
 import upt.myplanner.photo.PhotoActivity;
@@ -306,7 +307,7 @@ public class FriendsActivity extends AppCompatActivity
         Class nextActivity=null;
 
         if (id == R.id.nav_calendar) {
-            // Handle the calendar action
+            nextActivity = CalendarActivity.class;
         } else if (id == R.id.nav_friends) {
             nextActivity = FriendsActivity.class;
         } else if (id == R.id.nav_requests) {

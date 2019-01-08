@@ -184,7 +184,7 @@ public class UserPhotosActivity extends AppCompatActivity {
                             .resize(300, 300)
                             .centerCrop()
                             .placeholder(R.drawable.placeholder_img)
-                            .error(R.drawable.error_img)
+                            .error(R.drawable.img_person)
                             .into(profileImg);
 
                     profileName.setText(userName);

@@ -1130,16 +1130,21 @@ public class PhotoActivity extends AppCompatActivity
                         @SuppressLint("MissingPermission")
                         @Override
                         public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
-                            // All location settings are satisfied. The client can initialize
-                            // location requests here.
-                            // ...
+                            boolean gps_enabled = false;
+                            boolean network_enabled = false;
 
-                            if(isInternetAvailable()) {
+                            try {
+                                gps_enabled = mLocManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                            } catch(Exception ex) {}
+
+                            try {
+                                network_enabled = mLocManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                            } catch(Exception ex) {}
+
+                            if(network_enabled && isInternetAvailable()) {
                                 mLocManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, mLocListener);
                             }
-                            else if(gpsEnabled()) {
-                                Toast.makeText(activity,"Network location disabled because no internet connection. Trying GPS",Toast.LENGTH_LONG).show();
-                                Log.d(TAG,"GPS enabled,Network not");
+                            else if(gps_enabled) {
                                 mLocManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocListener);
                             }
                             else {
@@ -1147,7 +1152,6 @@ public class PhotoActivity extends AppCompatActivity
                                 Intent gpsOptionsIntent = new Intent(
                                         android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                                 startActivity(gpsOptionsIntent);
-                                Log.e(TAG,"GPS disabled");
                             }
                         }
                     });
