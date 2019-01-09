@@ -11,6 +11,24 @@
     tools:context=".calendar.CalendarActivity"
     tools:showIn="@layout/app_bar_calendar">
 
+    <android.support.v7.widget.CardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/bCard"
+        android:layout_centerHorizontal="true"
+        app:cardBackgroundColor="@color/colorPrimary"
+        android:padding="5dp"
+        android:elevation="4dp"
+        app:cardCornerRadius="4dp">
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/bEvents"
+            android:background="@color/colorPrimary"
+            android:text="View all events"
+            android:padding="5dp" />
+    </android.support.v7.widget.CardView>
+
     <!-- CalendarView with monday as first day and minmal and maximal day -->
     <CalendarView
         android:id="@+id/simpleCalendarView"
@@ -18,7 +36,8 @@
         android:layout_height="fill_parent"
         android:firstDayOfWeek="2"
         android:maxDate="01/01/2088"
-        android:minDate="01/01/2000" />
+        android:minDate="01/01/2000"
+        android:layout_below="@id/bCard"/>
 
 
 </RelativeLayout>

@@ -130,21 +130,15 @@ public class CalendarActivity extends AppCompatActivity
                                 dialog.dismiss();
                             }
                         });
-                ArrayAdapter a;
-
-
-
                 AlertDialog dialog = builder.create();
                 dialog.show();
+            }
+        });
 
-
-
-
-                // MainActivity.this.startActivity(intent);
-
-
-
-
+        findViewById(R.id.bEvents).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(CalendarActivity.this,EventActivity.class));
             }
         });
     }

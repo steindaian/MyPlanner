@@ -39,17 +39,17 @@
         android:layout_toRightOf="@id/tName"
         android:hint="Name"
         android:layout_marginLeft="10dp"
+        android:maxLength="50"
+        android:maxLines="2"
         />
-
     <TextView
         android:id="@+id/tStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/eName"
+        android:layout_below="@+id/tName"
         android:text="Start time:"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="35dp"
         />
-
     <EditText
         android:id="@+id/eStart"
         android:layout_width="match_parent"
@@ -64,9 +64,9 @@
         android:id="@+id/tEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/eStart"
+        android:layout_below="@+id/tStart"
         android:text="End time:"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="35dp"
         />
     <EditText
         android:id="@+id/eEnd"
@@ -82,9 +82,9 @@
         android:id="@+id/tDescr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/eEnd"
+        android:layout_below="@+id/tEnd"
         android:text="Description:"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="10dp"
         />
     <EditText
         android:id="@+id/eDescr"

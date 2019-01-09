@@ -23,6 +23,17 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.lang.reflect.Field;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import upt.myplanner.R;
 import upt.myplanner.login.LoginActivity;
 
@@ -49,6 +60,12 @@ public class AddEventActivity extends AppCompatActivity {
     private String month;
     private String day;
     private TextView tDate;
+    private String start;
+    private String end;
+    private String name;
+    private String description;
+    private String timestamp;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +107,11 @@ public class AddEventActivity extends AppCompatActivity {
             month = getIntent().getStringExtra("month");
             day = getIntent().getStringExtra("day");
 
+            start = getIntent().getStringExtra("start");
+            end = getIntent().getStringExtra("end");
+            name = getIntent().getStringExtra("name");
+            description = getIntent().getStringExtra("description");
+            timestamp = getIntent().getStringExtra("timestamp");
         }
         else {
             this.onBackPressed();
@@ -126,28 +148,61 @@ public class AddEventActivity extends AppCompatActivity {
             }
         });
 
+        if(timestamp!=null) {
+            eName.setText(name);
+            eDescription.setText(description);
+            eStart.setText(start);
+            eEnd.setText(end);
+        }
         final Button button = findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
 
             public void onClick(View v) {
-                MyEvent event = new MyEvent(eName.getText().toString(),eDescription.getText().toString(),eStart.getText().toString(),eEnd.getText().toString(),year,month,day);
-                event.uid= uid;
-                db.collection("events").document(getCurrentTimeDate()).set(event).addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if (task.isSuccessful()){
-                            AddEventActivity.this.onBackPressed();
+                if(eName.getText().toString().equals("") || eStart.getText().toString().equals("") || eEnd.getText().toString().equals("")) {
+                    Toast.makeText(AddEventActivity.this,"Fields aren't allowed to be empty, except description",Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!checkTime(eStart.getText().toString()) && !checkTime(eEnd.getText().toString())) {
+                    Toast.makeText(AddEventActivity.this, "Start Time or End Time are not well formated", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!checktimings(eStart.getText().toString(),eEnd.getText().toString())) {
+                    Toast.makeText(AddEventActivity.this, "Start Time is greater or equal than End Time", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                MyEvent event = new MyEvent(eName.getText().toString(), eDescription.getText().toString(), eStart.getText().toString(), eEnd.getText().toString(), year, month, day);
+                event.uid = uid;
+                if (timestamp != null) {
+                    event.timestamp = timestamp;
+                    Map<String, Object> map = getMap(event);
+                    if (map == null) return;
+                    db.collection("events").document(timestamp).update(map).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            if (task.isSuccessful()) {
+                                AddEventActivity.this.onBackPressed();
+                            } else {
+                                Log.e(LOG_TAG, "Error at creating a new event");
+                                Toast.makeText(AddEventActivity.this, "Error at creating a new event", Toast.LENGTH_LONG).show();
+                            }
                         }
-                        else{
-                            Log.e(LOG_TAG,"Error at creating a new event");
-                            Toast.makeText(AddEventActivity.this,"Error at creating a new event",Toast.LENGTH_LONG).show();
+                    });
+                } else {
+                    event.timestamp = getCurrentTimeDate();
+                    db.collection("events").document(getCurrentTimeDate()).set(event).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            if (task.isSuccessful()) {
+                                AddEventActivity.this.onBackPressed();
+                            } else {
+                                Log.e(LOG_TAG, "Error at creating a new event");
+                                Toast.makeText(AddEventActivity.this, "Error at creating a new event", Toast.LENGTH_LONG).show();
+                            }
                         }
-                    }
-                });
-
-
-
+                    });
+                }
             }
         });
 
@@ -155,6 +210,52 @@ public class AddEventActivity extends AppCompatActivity {
     }
 
 
+    public Map<String, Object> getMap(Object o) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        Field[] declaredFields = o.getClass().getDeclaredFields();
+        for (Field field : declaredFields) {
+            try {
+                result.put(field.getName(), field.get(o));
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        return result;
+    }
+
+    public boolean checkTime(String time) {
+        try {
+            DateTimeFormatter strictTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+                    .withResolverStyle(ResolverStyle.STRICT);
+            LocalTime.parse(time, strictTimeFormatter);
+            return true;
+        } catch (DateTimeParseException | NullPointerException e) {
+            return false;
+        }
+    }
+
+
+    public boolean checktimings(String startTime, String endTime) {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+        startTime = eStart.getText().toString();
+        endTime = eEnd.getText().toString();
+        try {
+            Date date1 = sdf.parse(startTime);
+            Date date2 = sdf.parse(endTime);
+
+            if(date1.before(date2)) {
+                return true;
+            } else {
+
+                return false;
+            }
+        } catch (ParseException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
     @Override
     public void onStart() {
         super.onStart();

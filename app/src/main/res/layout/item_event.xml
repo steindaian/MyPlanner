@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    card_view:cardElevation="5dp"
+    card_view:contentPadding="15dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    card_view:cardBackgroundColor="@color/white"
+    card_view:cardCornerRadius="4dp"
+    android:layout_marginBottom="5dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/eventName"
+            android:text="Name"
+            android:textStyle="bold"
+            android:textSize="25dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/eventDescr"
+            android:layout_below="@id/eventName"
+            android:layout_toLeftOf="@id/eventStart"
+            android:layout_marginRight="5dp"
+            android:text="Description"
+            android:layout_marginTop="5dp"
+            android:scrollbars="vertical"
+            android:maxLines="3"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/eventDate"
+            android:text="Date"
+            android:textStyle="bold"
+            android:layout_alignParentRight="true"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/eventStart"
+            android:layout_below="@id/eventDate"
+            android:text="Start Time"
+            android:layout_alignParentRight="true"
+            android:layout_marginTop="5dp"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/eventEnd"
+            android:text="End Time"
+            android:layout_alignParentRight="true"
+            android:layout_below="@id/eventStart"
+            android:layout_marginTop="5dp"/>
+
+        <ImageButton
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:id="@+id/bDelete"
+            android:src="@drawable/ic_delete"
+            android:layout_below="@id/eventEnd"
+            android:scaleType="centerCrop"
+            android:layout_alignParentRight="true"
+            android:layout_marginTop="10dp"/>
+        <ImageButton
+            android:layout_marginTop="10dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:id="@+id/bEdit"
+            android:src="@drawable/ic_edit"
+            android:scaleType="centerCrop"
+            android:layout_below="@id/eventEnd"
+            android:layout_toLeftOf="@id/bDelete"
+            android:layout_marginRight="10dp"/>
+
+    </RelativeLayout>
+
+</android.support.v7.widget.CardView>
