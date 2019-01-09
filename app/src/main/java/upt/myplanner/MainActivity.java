@@ -1,7 +1,9 @@
 package upt.myplanner;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -11,8 +13,10 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -20,6 +24,8 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
@@ -47,16 +53,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private Button btnChangeUsername;
     private Button changeUsername;
     private OnCompleteListener<InstanceIdResult> tokenListener;
+    private String uid;
+    private String TAG= "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         auth = FirebaseAuth.getInstance();
-        if(auth.getCurrentUser()==null) {
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-            //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        if(FirebaseAuth.getInstance().getCurrentUser()==null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
+        }
+        else {
+            try {
+                uid = auth.getCurrentUser().getUid();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                super.onBackPressed();
+                finish();
+            }
         }
         setContentView(R.layout.activity_main);
 
@@ -171,20 +189,61 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View v) {
                 progressBar.setVisibility(View.VISIBLE);
                 if (user != null && !newEmail.getText().toString().trim().equals("")) {
-                    user.updateEmail(newEmail.getText().toString().trim())
-                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    if (task.isSuccessful()) {
-                                        Toast.makeText(MainActivity.this, "Email address is updated. Please sign in with new email id!", Toast.LENGTH_LONG).show();
-                                        signOut();
-                                        progressBar.setVisibility(View.GONE);
-                                    } else {
-                                        Toast.makeText(MainActivity.this, "Failed to update email!", Toast.LENGTH_LONG).show();
-                                        progressBar.setVisibility(View.GONE);
-                                    }
-                                }
-                            });
+                    LayoutInflater inflater = getLayoutInflater();
+                    View dialogLayout = inflater.inflate(R.layout.layout_old_password, null);
+                    final EditText oldPassword = dialogLayout.findViewById(R.id.oldPassword);
+                    final android.app.AlertDialog.Builder myAlertDialog = new android.app.AlertDialog.Builder(MainActivity.this);
+                    myAlertDialog.setTitle("Update Password");
+                    myAlertDialog.setMessage("Enter old password for security reasons");
+                    myAlertDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    }).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                            AuthCredential credential = EmailAuthProvider
+                                    .getCredential(user.getEmail(), oldPassword.getText().toString());
+                            user.reauthenticate(credential)
+                                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Void> task) {
+                                            hideKeyboard(MainActivity.this);
+                                            if (task.isSuccessful()) {
+                                                user.updateEmail(newEmail.getText().toString().trim())
+                                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                            @Override
+                                                            public void onComplete(@NonNull Task<Void> task) {
+                                                                hideKeyboard(MainActivity.this);
+                                                                if (task.isSuccessful()) {
+                                                                    FirebaseFirestore.getInstance().collection("users").document(uid).update("email",newEmail.getText().toString().trim());
+                                                                    Toast.makeText(MainActivity.this, "Email address is updated. Please sign in with new email id!", Toast.LENGTH_LONG).show();
+                                                                    signOut();
+                                                                    progressBar.setVisibility(View.GONE);
+                                                                } else {
+                                                                    Log.e(TAG,task.getException().toString());
+                                                                    Toast.makeText(MainActivity.this, "Failed to update email!", Toast.LENGTH_LONG).show();
+                                                                    progressBar.setVisibility(View.GONE);
+                                                                }
+                                                            }
+                                                        });
+                                            } else {
+                                                Log.e(TAG, "Error auth failed. "+task.getException().toString());
+                                                Toast.makeText(MainActivity.this, "Failed to update password! Old password incorrect.", Toast.LENGTH_SHORT).show();
+
+                                            }
+                                        }
+                                    });
+
+
+                        }
+                    });
+                    AlertDialog dialog = myAlertDialog.create();
+                    dialog.setView(dialogLayout);
+                    dialog.show();
+
                 } else if (newEmail.getText().toString().trim().equals("")) {
                     newEmail.setError("Enter email");
                     progressBar.setVisibility(View.GONE);
@@ -220,9 +279,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 .setDisplayName(username)
                                 .build();
 
+                        FirebaseFirestore.getInstance().collection("users").document(uid).update("name",username);
                         user.updateProfile(profileUpdates).addOnCompleteListener(new OnCompleteListener<Void>() {
                             @Override
                             public void onComplete(@NonNull Task<Void> task) {
+                                hideKeyboard(MainActivity.this);
                                 if(task.isSuccessful()) {
                                     Toast.makeText(MainActivity.this,"Username update was successful",Toast.LENGTH_LONG).show();
                                     Log.d("MainActivity","Username updated");
@@ -267,25 +328,64 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onClick(View v) {
                 progressBar.setVisibility(View.VISIBLE);
+
                 if (user != null && !newPassword.getText().toString().trim().equals("")) {
                     if (newPassword.getText().toString().trim().length() < 6) {
                         newPassword.setError("Password too short, enter minimum 6 characters");
                         progressBar.setVisibility(View.GONE);
                     } else {
-                        user.updatePassword(newPassword.getText().toString().trim())
-                                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        if (task.isSuccessful()) {
-                                            Toast.makeText(MainActivity.this, "Password is updated, sign in with new password!", Toast.LENGTH_SHORT).show();
-                                            signOut();
-                                            progressBar.setVisibility(View.GONE);
-                                        } else {
-                                            Toast.makeText(MainActivity.this, "Failed to update password!", Toast.LENGTH_SHORT).show();
-                                            progressBar.setVisibility(View.GONE);
-                                        }
-                                    }
-                                });
+                        LayoutInflater inflater = getLayoutInflater();
+                        View dialogLayout = inflater.inflate(R.layout.layout_old_password, null);
+                        final EditText oldPassword = dialogLayout.findViewById(R.id.oldPassword);
+                        final android.app.AlertDialog.Builder myAlertDialog = new android.app.AlertDialog.Builder(MainActivity.this);
+                        myAlertDialog.setTitle("Update Password");
+                        myAlertDialog.setMessage("Enter old password for security reasons");
+                        myAlertDialog.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        }).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                                AuthCredential credential = EmailAuthProvider
+                                        .getCredential(user.getEmail(), oldPassword.getText().toString());
+                                user.reauthenticate(credential)
+                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                hideKeyboard(MainActivity.this);
+                                                if (task.isSuccessful()) {
+                                                    user.updatePassword(newPassword.getText().toString().trim())
+                                                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                @Override
+                                                                public void onComplete(@NonNull Task<Void> task) {
+                                                                    if (task.isSuccessful()) {
+                                                                        Toast.makeText(MainActivity.this, "Password is updated, sign in with new password!", Toast.LENGTH_SHORT).show();
+                                                                        signOut();
+                                                                        progressBar.setVisibility(View.GONE);
+                                                                    } else {
+                                                                        Toast.makeText(MainActivity.this, "Failed to update password!", Toast.LENGTH_SHORT).show();
+                                                                        Log.e("MainActivity",task.getException().toString());
+                                                                        progressBar.setVisibility(View.GONE);
+                                                                    }
+                                                                }
+                                                            });
+                                                } else {
+                                                    Log.e(TAG, "Error auth failed. "+task.getException().toString());
+                                                    Toast.makeText(MainActivity.this, "Failed to update password! Old password incorrect.", Toast.LENGTH_SHORT).show();
+
+                                                }
+                                            }
+                                        });
+
+
+                            }
+                        });
+                        AlertDialog dialog = myAlertDialog.create();
+                        dialog.setView(dialogLayout);
+                        dialog.show();
                     }
                 } else if (newPassword.getText().toString().trim().equals("")) {
                     newPassword.setError("Enter password");
@@ -319,11 +419,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             .addOnCompleteListener(new OnCompleteListener<Void>() {
                                 @Override
                                 public void onComplete(@NonNull Task<Void> task) {
+                                    hideKeyboard(MainActivity.this);
                                     if (task.isSuccessful()) {
                                         Toast.makeText(MainActivity.this, "Reset password email is sent!", Toast.LENGTH_SHORT).show();
                                         progressBar.setVisibility(View.GONE);
                                     } else {
                                         Toast.makeText(MainActivity.this, "Failed to send reset email!", Toast.LENGTH_SHORT).show();
+                                        Log.e(TAG,"Failed to send rest email. "+task.getException().toString());
                                         progressBar.setVisibility(View.GONE);
                                     }
                                 }
@@ -390,7 +492,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         auth.addAuthStateListener(authListener);
 
     }
-
+    public static void hideKeyboard(Activity activity) {
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        //Find the currently focused view, so we can grab the correct window token from it.
+        View view = activity.getCurrentFocus();
+        //If no view currently has focus, create a new one, just so we can grab a window token from it
+        if (view == null) {
+            view = new View(activity);
+        }
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
     @Override
     public void onStop() {
         super.onStop();

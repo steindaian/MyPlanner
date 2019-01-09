@@ -406,7 +406,7 @@ public class PhotoActivity extends AppCompatActivity
                 }
 
                 if (documentSnapshot != null && documentSnapshot.exists() ) {
-                    userName = (String) documentSnapshot.get("name");
+                    //userName = (String) documentSnapshot.get("name");
                     profileName.setText(userName);
                     if (documentSnapshot.get("description") != null) {
                         profileDescription.setText((String) documentSnapshot.get("description"));
@@ -1309,6 +1309,8 @@ public class PhotoActivity extends AppCompatActivity
         profileRegistration = db.collection("users").document(auth.getCurrentUser().getUid()).addSnapshotListener(profileListener);
         auth.addAuthStateListener(authListener);
         databaseReference.child("posts").child(auth.getCurrentUser().getUid()).addChildEventListener(photoEventListener);
+        userName = auth.getCurrentUser().getDisplayName();
+        profileName.setText(userName);
     }
 
     @Override

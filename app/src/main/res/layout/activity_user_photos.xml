@@ -71,6 +71,7 @@
                 android:layout_toRightOf="@id/userprofilePicture">
                 <TextView
                     android:id="@+id/userprofileDescription"
+                    android:minLines="2"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:overScrollMode="ifContentScrolls"
