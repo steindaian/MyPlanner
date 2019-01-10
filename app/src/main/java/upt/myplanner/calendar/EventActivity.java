@@ -110,10 +110,10 @@ public class EventActivity extends AppCompatActivity {
         listEvents.setAdapter(mAdapter);
         Query q;
         if(Year!=null && Month!=null && Day!=null) {
-            q = db.collection("events").whereEqualTo("year",Year).whereEqualTo("month",Month).whereEqualTo("day",Day);
+            q = db.collection("events").whereEqualTo("uid",uid).whereEqualTo("year",Year).whereEqualTo("month",Month).whereEqualTo("day",Day);
         }
         else {
-            q = db.collection("events");
+            q = db.collection("events").whereEqualTo("uid",uid);
         }
 
         final TextView noEvents = findViewById(R.id.noEvent);
